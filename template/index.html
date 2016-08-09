@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>柠檬支付</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='shortcut icon' type='image/x-icon' href='/static/favicon.ico' />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.1.0/js.cookie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.css">
+    <script src="{{ static_url('quagga.min.js') }}"></script>
+    <script src="{{ static_url('scanner.js') }}"></script>
+    <script src="{{ static_url('payment.js') }}"></script>
+    <style>
+      h1,h2,h3,h4,h5,h6,p,a,div,input,button
+      {font-family: sans-serif,Helvetica,Arial,'Microsoft YaHei UI' !important}
+      #fee_input_div, #pay_panel #auth_code_input_div
+      {font-size:2em;}
+      #fee_input_div input, #pay_panel #auth_code_input_div input
+      {padding-left:1.3em !important;}
+      #warpper
+      {margin:0 auto;max-width:60em;padding:5em 1em;}
+      #webcam
+      {display:none;margin:0 auto;padding:0.3em;opacity:0.7;}
+      .mobile_only
+      {display:none !important;}
+      #interactive video
+      {object-fit: cover;width:100%;}
+      #interactive canvas
+      {width:100%!important;height:100%!important;margin-top:-100%;}
+      @media only screen and (max-device-width: 700px)
+      {
+        #warpper
+        {padding:1em 1em;}
+        #webcam
+        {display:table;}
+        .mobile_only
+        {display:block !important;}
+      }
+    </style>
+</head>
+
+<body>
+  <div id="warpper">
+    <div class="ui large basic modal" id="msg_modal">
+      <div class="ui icon header"></div>
+      <div class="content" style="text-align:center;"></div>
+      <div class="actions" style="text-align:center;"></div>
+    </div>
+
+    <div id="interactive" class="viewport" style="display:table;margin:0.5em auto 0 auto;"></div>
+
+    <div id="webcam">
+      <div name="open" style="margin:0;"
+           onclick="scanner_open()"><i class="big icon photo"></i></div>
+      <div name="close" style="margin:0;display:none;"
+           onclick="scanner_close()"><i class="big icon remove"></i></div>
+    </div>
+
+    <div class="ui stacked segment" id="pay_panel">
+      <div class="ui left icon fluid transparent input" id="fee_input_div">
+        <i class="yen icon"></i>
+        <input type="text" name="fee" placeholder="金额" autocomplete="off" maxlength="18" >
+      </div>
+      <br>
+      <div class="ui left icon fluid transparent input" id="auth_code_input_div">
+        <i class="qrcode icon"></i>
+        <input type="text" name="auth_code" placeholder="请扫描客户条码" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="18">
+      </div>
+      <br class="mobile_only">
+      <div class="ui compact large basic button mobile_only" style="text-align:center;">收款</div>
+    </div>
+
+    <div class="ui segment" id="device_name_input_div" style="display:none;">
+      <div class="ui left icon fluid transparent input" style="font-size:1.3em;">
+        <i class="print icon"></i>
+        <input type="text" placeholder="设备名称" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="ui segment">
+      <div class="ui left icon fluid transparent input" style="font-size:1.3em;">
+        <i class="search icon"></i>
+        <input type="text" id="query_input" placeholder="订单查询" autocorrect="off" autocapitalize="off" spellcheck="false" >
+      </div>
+    </div>
+
+    <div class="ui segment" id="result_panel" style="display:none;">
+      <table class="ui very basic fixed unstackable table">
+        <tbody>
+          <tr><td>交易金额</td><td name="orginal_fee"></td></tr>
+          <tr><td>退款金额</td><td name="refund_fee"></td></tr>
+          <tr><td>实际金额</td><td name="total_fee"></td></tr>
+          <tr><td>操作结果</td><td name="state"></td></tr>
+          <tr><td>订单状态</td><td name="order_state"></td></tr>
+          <tr><td>支付方式</td><td name="method"></td></tr>
+          <tr><td>交易时间</td><td name="create_time"></td></tr>
+          <tr><td>操作时间</td><td name="time"></td></tr>
+          <tr><td>交易单号</td><td name="out_trade_no"></td></tr>
+          <tr><td>收款设备</td><td name="pay_device_name"></td></tr>
+          <tr><td>退款设备</td><td name="refund_device_name"></td></tr>
+        </tbody>
+      </table>
+      <p name="raw_data_display"></p>
+      <div class="ui compact green basic button" name="refresh_btn">刷新</div>
+      <div class="ui compact red basic button" name="display_refund">退款</div>
+      <div class="ui compact basic button" name="display_raw">显示原始数据</div>
+      <br>
+      <div name="refund_panel" style="margin-top:1em;display:none;">
+        <h3>订单退款</h3>
+        <div class="ui left icon action input">
+          <i class="yen icon"></i>
+          <input type="text" name="refund_input" placeholder="退款金额">
+          <div class="ui compact orange button" name="refund_button">退款</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui top attached segment">
+      <div class="ui buttons">
+        <div class="ui compact basic button" onclick="get_history_by_day(0)">今日</div>
+        <div class="ui compact basic button" onclick="get_history_by_day(-1)">昨日</div>
+        <div class="ui compact basic button" onclick="get_history_by_day(-2)">前日</div>
+        <div class="ui compact basic button" onclick="get_history_by_day(7)">最近7日</div>
+      </div>
+    </div>
+    <div class="ui bottom attached segment" style="padding:1em 2em;" id="history_panel">
+      <table class="ui very basic table" id="history_table">
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="ui bottom attached segment" style="padding:1em;display:none;">
+      <table class="ui very basic table" id="sums_table">
+        <thead>
+          <tr><th>时段</th><th>支付宝</th><th>微信</th></tr>
+        </thead>
+        <tbody>
+          <tr name="am"><td>上午 (0a-10a)</td><td name="a"><td name="m"></tr>
+          <tr name="mo"><td>中午 (10a-13p)</td><td name="a"><td name="m"></tr>
+          <tr name="pm"><td>下午 (13p-17p)</td><td name="a"><td name="m"></tr>
+          <tr name="ev"><td>晚上 (17p-0a)</td><td name="a"><td name="m"></tr>
+          <tr name="su"><td>合计</td><td name="a"><td name="m"></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+<script src="{{ static_url('index.js') }}"></script>
+</html>

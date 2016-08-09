@@ -1,0 +1,6 @@
+setuptools
+tornado
+pymongo
+requests
+cryptography
+pyOpenSSL
