@@ -2,7 +2,7 @@
 Micropay + Alipay 微信支付+支付宝 扫码支付平台
 
 ## Screenshots
-[](images/screenshot_mobile_1.png)
+![](images/screenshot_mobile_1.png)
 
 ## Install
 - ``` pip install -r pip-requirement.txt ```
